@@ -520,7 +520,7 @@
             const [splitTarget, setSplitTarget] = useState(null);
             const [splitValue, setSplitValue] = useState(0);
             const [manualModalOpen, setManualModalOpen] = useState(false);
-            const [editEntryId, setEditEntryId] = useState(null); // ID of entry being edited
+            const [editEntryId, setEditEntryId] = useState(null); 
             const [recategorizeTarget, setRecategorizeTarget] = useState(null);
             const [recatQuery, setRecatQuery] = useState("");
             const [manualForm, setManualForm] = useState({
@@ -717,13 +717,15 @@
                             }
                         }
 
+                        // Use olderEntry as the base to preserve its metadata (Color, ChargeCode, etc)
+                        // Update end time to the newer entry's end (or null if running)
                         const mergedEntry = {
-                            ...entry, 
+                            ...olderEntry, 
                             id: generateId(), 
-                            start: olderEntry.start, 
                             end: entry.end, 
                             description: newDesc
                         };
+                        
                         const remaining = entries.filter(e => e.id !== entry.id && e.id !== olderEntry.id);
                         updateEntries([...remaining, mergedEntry]);
                     }
@@ -1080,8 +1082,26 @@
             const handleMerge = () => {
                 console.log("Manage Merge:", selectedMergeTask, "->", mergeTarget);
                 if (!selectedMergeTask || !mergeTarget || selectedMergeTask === mergeTarget) return;
+
+                // Find target properties to apply to merged tasks
+                const targetSample = entries.find(e => e.title === mergeTarget);
+
                 if (safeConfirm(`Merge all history from "${selectedMergeTask}" into "${mergeTarget}"?`)) {
-                    updateEntries(entries.map(e => e.title === selectedMergeTask ? { ...e, title: mergeTarget } : e));
+                    updateEntries(entries.map(e => {
+                        if (e.title === selectedMergeTask) {
+                            const newDesc = `[Was: ${selectedMergeTask}]\n${e.description || ''}`.trim();
+                            return { 
+                                ...e, 
+                                title: mergeTarget, 
+                                description: newDesc,
+                                // Apply properties from the target task
+                                chargeCode: targetSample ? targetSample.chargeCode : e.chargeCode,
+                                category: targetSample ? targetSample.category : e.category,
+                                color: targetSample ? targetSample.color : e.color
+                            };
+                        }
+                        return e;
+                    }));
                     setSelectedMergeTask(null);
                     setMergeTarget("");
                 }
