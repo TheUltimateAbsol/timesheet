@@ -1,0 +1,17 @@
+{
+  "name": "TimeFlow Timesheet",
+  "short_name": "TimeFlow",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e293b",
+  "description": "Track, review, and analyze timesheets even while offline with TimeFlow.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
