@@ -516,31 +516,53 @@
 
         const HomeView = ({ entries, updateEntries, tick }) => {
             const [newTaskTitle, setNewTaskTitle] = useState("");
-            const [filter, setFilter] = useState('all');
+            const [filter, setFilter] = useState('last-7');
             const [splitTarget, setSplitTarget] = useState(null);
             const [splitValue, setSplitValue] = useState(0);
             const [manualModalOpen, setManualModalOpen] = useState(false);
-            const [editEntryId, setEditEntryId] = useState(null); 
+            const [editEntryId, setEditEntryId] = useState(null); // ID of entry being edited
             const [recategorizeTarget, setRecategorizeTarget] = useState(null);
             const [recatQuery, setRecatQuery] = useState("");
             const [manualForm, setManualForm] = useState({
-                title: '', date: '', startTime: '', endTime: '', chargeCode: '', category: 'work', description: '', color: ''
+                title: '',
+                date: '',
+                startTime: '',
+                endTime: '',
+                chargeCode: '',
+                category: 'work',
+                description: '',
+                color: ''
             });
             const uniqueTitles = useMemo(() => [...new Set(entries.map(e => e.title))], [entries]);
 
             const sortedEntries = useMemo(() => {
                 const now = Date.now();
-                const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-                let data = entries.filter(e => e.start >= sevenDaysAgo).sort((a, b) => {
-                        if (!a.end && b.end) return -1;
-                        if (a.end && !b.end) return 1;
-                        return b.start - a.start;
-                    });
-                if (filter === 'work') data = data.filter(e => e.category === 'work');
-                if (filter === 'non-work') data = data.filter(e => e.category === 'non-work');
+                let data = [...entries];
+                
+                // Sort: Active first, then newest start time
+                data.sort((a, b) => {
+                    if (!a.end && b.end) return -1;
+                    if (a.end && !b.end) return 1;
+                    return b.start - a.start;
+                });
+
+                // Time-based Filters
+                if (filter === 'last-7') {
+                    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+                    data = data.filter(e => e.start >= sevenDaysAgo);
+                } else if (filter === 'current-pp') {
+                    const bounds = getPayPeriodBounds(new Date(now));
+                    data = data.filter(e => e.start >= bounds.start && e.start <= bounds.end);
+                } else if (filter === 'last-30') {
+                    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+                    data = data.filter(e => e.start >= thirtyDaysAgo);
+                }
+
                 return data;
             }, [entries, filter]);
 
+            // Full sorted list for merge checks - sorted by start time (newest first)
+            // Logic requires newest first to look ahead for older entries
             const allSortedEntries = useMemo(() => {
                 return [...entries].sort((a, b) => b.start - a.start);
             }, [entries]);
@@ -818,9 +840,9 @@
                                     className="appearance-none bg-slate-100 border border-slate-200 text-slate-700 py-2 px-3 pr-8 rounded leading-tight focus:outline-none focus:bg-white focus:border-slate-500 text-xs font-bold uppercase tracking-wide"
                                     value={filter} onChange={(e) => setFilter(e.target.value)}
                                 >
-                                    <option value="all">Last 7 Days</option>
-                                    <option value="work">Work Only</option>
-                                    <option value="non-work">Non-Work</option>
+                                    <option value="last-7">Last 7 Days</option>
+                                    <option value="current-pp">Current Pay Period</option>
+                                    <option value="last-30">Last 30 Days</option>
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><IconFilter className="w-3 h-3" /></div>
                             </div>
